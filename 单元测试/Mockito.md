@@ -28,3 +28,4 @@ when(spy.get(0)).thenReturn("foo");
 //你必须使用doReturn去存根
 doReturn("foo").when(spy).get(0);
 ```
+
