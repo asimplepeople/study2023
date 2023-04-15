@@ -150,9 +150,9 @@ target
 
 ### 构建镜像
 
-现在我们已经创建了 Dockerfile，让我们构建我们的映像。为此，我们使用命令。该命令从 Dockerfile 和“上下文”构建 Docker 映像。生成的上下文是位于指定 PATH 或 URL 中的文件集。Docker 生成过程可以访问位于此上下文中的任何文件。`docker build``docker build`
+现在我们已经创建了 Dockerfile，让我们构建我们的映像。为此，我们使用命令。该命令从 Dockerfile 和“上下文”构建 Docker 映像。生成的上下文是位于指定 PATH 或 URL 中的文件集。Docker 生成过程可以访问位于此上下文中的任何文件。`docker build` `docker build`
 
-构建命令可以选择采用标志。该标记用于设置图像的名称和格式为 .我们暂时省略可选选项，以帮助简化操作。如果我们不传递标签，Docker 使用“latest”作为其默认标签。您可以在生成输出的最后一行中看到这一点。`--tag``name:tag``tag`
+构建命令可以选择采用标志。该标记用于设置图像的名称和格式为 .我们暂时省略可选选项，以帮助简化操作。如果我们不传递标签，Docker 使用“latest”作为其默认标签。您可以在生成输出的最后一行中看到这一点。`--tag` `name:tag` `tag`
 
 让我们构建我们的第一个 Docker 镜像。
 
@@ -206,9 +206,9 @@ java-docker   latest   b1b5f29f74f0	  59 minutes ago	567MB
 java-docker   v1.0.0   b1b5f29f74f0	  59 minutes ago	567MB
 ```
 
-您可以看到我们有两个以 .我们知道它们是相同的图像，因为如果您查看该列，您可以看到两个图像的值相同。`java-docker``IMAGE ID`
+您可以看到我们有两个以 .我们知道它们是相同的图像，因为如果您查看该列，您可以看到两个图像的值相同。`java-docker` `IMAGE ID`
 
-让我们删除刚刚创建的标记。为此，我们将使用该命令。该命令代表“删除图像”。`rmi``rmi`
+让我们删除刚刚创建的标记。为此，我们将使用该命令。该命令代表“删除图像”。`rmi` `rmi`
 
 ```
 $ docker rmi java-docker:v1.0.0
@@ -231,3 +231,84 @@ java-docker    	latest	b1b5f29f74f0	59 minutes ago	     567MB
 
 完成[构建 Java 映像](https://docs.docker.com/language/java/build-images/)中构建 Java 映像的步骤。
 
+### 概述
+
+在前面的模块中，我们创建了示例应用程序，然后创建了用于构建映像的Dockerfile。我们使用命令 `docker build` 创建了映像。现在我们有了一个映像，我们可以运行该映像并查看应用程序是否正确运行。
+
+容器是一个正常的操作系统进程，只不过这个进程是隔离的，它有自己的文件系统、自己的网络和自己的隔离进程树，与主机隔离。
+
+要在容器中运行映像，我们使用 `docker run` 命令。 `docker run` 命令需要一个参数，即映像的名称。让我们启动映像并确保它正确运行。在终端运行如下命令:
+
+```
+docker run java-docker
+```
+
+运行此命令后，您将注意到我们没有返回到命令提示符。这是因为我们的应用程序是一个REST服务器，在循环中运行，等待传入的请求，而不将控制返回给操作系统，直到我们停止容器。
+
+让我们打开一个新终端，然后使用命令向服务器发出请求。`GET` `curl`
+
+```
+curl --request GET \
+--url http://localhost:8080/actuator/health \
+--header 'content-type: application/json'
+curl: (7) Failed to connect to localhost port 8080: Connection refused
+```
+
+如您所见，我们的命令失败了，因为到服务器的连接被拒绝了。这意味着我们无法连接到端口8080上的本地主机。这是意料之中的，因为我们的容器是独立运行的，其中包括网络。让我们停止容器，并使用在本地网络上发布的端口8080重新启动. `curl`
+
+要停止容器，请按ctrl-c。这将返回到终端提示符。
+
+为了发布容器的端口，我们将在docker run命令上使用——publish标志(简称-p)。——publish命令格式为[host port]:[container port]。因此，如果我们想将容器内的端口8000公开给容器外的端口8080，我们可以将8080:8000传递给——publish标志。
+
+启动容器并将8080端口暴露到主机上的8080端口。
+
+```
+$ docker run --publish 8080:8080 java-docker
+```
+
+现在，让我们从上面重新运行curl命令。
+
+```
+curl --request GET \
+--url http://localhost:8080/actuator/health \
+--header 'content-type: application/json'
+{"status":"UP"}
+```
+
+成功!我们能够在端口8080上连接到容器内运行的应用程序。
+
+现在，按ctrl-c停止容器。
+
+### 以分离模式运行
+
+到目前为止，这是很棒的，但我们的示例应用程序是一个web服务器，我们不需要连接到容器。Docker可以以分离模式或在后台运行容器。为此，我们可以使用——detach或简称为-d。Docker会像之前一样启动容器，但这一次，它将从容器中“分离”，并将您返回到终端提示符。
+
+```
+docker run -d -p 8080:8080 java-docker
+5ff83001608c7b787dbe3885277af018aaac738864d42c4fdf5547369f6ac752
+```
+
+Docker在后台启动容器，并在终端上打印容器ID。
+
+同样，让我们确保容器正常运行。从上面运行相同的curl命令。
+
+```
+curl --request GET \
+--url http://localhost:8080/actuator/health \
+--header 'content-type: application/json'
+{"status":"UP"}
+```
+
+### 列表容器
+
+当我们在后台运行我们的容器时，我们如何知道我们的容器是否在运行，或者还有哪些容器在我们的机器上运行?我们可以运行 `docker ps` 命令。就像我们在Linux中运行 `ps` 命令来查看机器上的进程列表一样，我们可以运行 `docker ps` 命令来查看机器上运行的容器列表。
+
+```
+docker ps
+CONTAINER ID   IMAGE            COMMAND                  CREATED              STATUS              PORTS                    NAMES
+5ff83001608c   java-docker      "./mvnw spring-boot:…"   About a minute ago   Up About a minute   0.0.0.0:8080->8080/tcp   trusting_beaver
+```
+
+`docker ps` 命令提供了一堆关于正在运行的容器的信息。我们可以看到容器ID、容器内运行的映像、用于启动容器的命令、创建容器的时间、状态、暴露的端口和容器的名称。
+
+您可能想知道容器的名称是从哪里来的。因为我们在启动容器时没有为它提供名称，所以Docker生成了一个随机名称。我们将在一分钟内修复这个问题，但首先我们需要停止容器。要停止容器，请运行docker stop命令，该命令将停止容器。我们需要传递容器的名称，或者我们可以使用容器ID。
