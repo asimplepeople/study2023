@@ -55,6 +55,11 @@ $ ./mvnw spring-boot:run
 
 这将下载依赖项、生成项目并启动它。
 
+> 1. 修改.mvn/wrapper/maven-wrapper.properties里面的distributionUrl为`distributionUrl=https://maven.aliyun.com/repository/central/org/apache/maven/apache-maven/3.8.7/apache-maven-3.8.7-bin.zip`
+> 2. 修改仓库地址 `https://maven.aliyun.com/repository/spring`
+
+
+
 要测试应用程序是否正常工作，请打开新浏览器并导航到 。`http://localhost:8080`
 
 切换回运行我们服务器的终端，您应该会在服务器日志中看到以下请求。计算机上的数据将有所不同。
@@ -312,3 +317,195 @@ CONTAINER ID   IMAGE            COMMAND                  CREATED              ST
 `docker ps` 命令提供了一堆关于正在运行的容器的信息。我们可以看到容器ID、容器内运行的映像、用于启动容器的命令、创建容器的时间、状态、暴露的端口和容器的名称。
 
 您可能想知道容器的名称是从哪里来的。因为我们在启动容器时没有为它提供名称，所以Docker生成了一个随机名称。我们将在一分钟内修复这个问题，但首先我们需要停止容器。要停止容器，请运行docker stop命令，该命令将停止容器。我们需要传递容器的名称，或者我们可以使用容器ID。
+
+```
+docker stop trusting_beaver
+trusting_beaver
+```
+
+现在，重新运行`docker ps` 命令去查看运行中的容器列表。
+
+```
+docker ps
+CONTAINER ID        IMAGE               COMMAND             CREATED             STATUS              PORTS               NAMES
+```
+
+### 停止、启动、命名 容器
+
+您可以启动、停止和重新启动Docker容器。当我们停止一个容器时，它并没有被移除，而是状态被改变为stopped，容器内的进程也停止了。当我们在上一模块中运行 `docker ps` 命令时，默认输出只显示正在运行的容器。当传递 `——all` 或简写为 `-a` 时，我们将看到机器上的所有容器，无论它们的启动或停止状态如何。
+
+```
+docker ps -a
+CONTAINER ID   IMAGE               COMMAND                  CREATED          STATUS                        PORTS                    NAMES
+5ff83001608c   java-docker         "./mvnw spring-boot:…"   5 minutes ago    Exited (143) 18 seconds ago                            trusting_beaver
+630f2872ddf5   java-docker         "./mvnw spring-boot:…"   11 minutes ago   Exited (1) 8 minutes ago                               modest_khayyam
+a28f9d587d95   java-docker         "./mvnw spring-boot:…"   17 minutes ago   Exited (1) 11 minutes ago                              lucid_greider
+```
+
+您现在应该看到列出了几个容器。这些是我们启动和停止的容器，但还没有被删除。
+
+让我们重新启动刚刚停止的容器。找到我们刚刚停止的容器的名称，并使用restart命令替换下面的容器名称。
+
+```
+docker restart trusting_beaver
+```
+
+现在,列出所有的容器使用码头工人ps命令。
+
+```
+docker ps -a
+CONTAINER ID   IMAGE         COMMAND                  CREATED          STATUS                      PORTS                    NAMES
+5ff83001608c   java-docker   "./mvnw spring-boot:…"   10 minutes ago   Up 2 seconds                0.0.0.0:8080->8080/tcp   trusting_beaver
+630f2872ddf5   java-docker   "./mvnw spring-boot:…"   16 minutes ago   Exited (1) 13 minutes ago                            modest_khayyam
+a28f9d587d95   java-docker   "./mvnw spring-boot:…"   22 minutes ago   Exited (1) 16 minutes ago                            lucid_greider
+```
+
+注意，我们刚刚重新启动的容器是以分离模式启动的，并且暴露了端口8080。另外，观察容器的状态是“Up X秒”。当您重新启动容器时，它将以与最初启动时相同的标志或命令启动。
+
+现在，让我们停下来，删除所有的容器，看看如何修复随机命名问题。找到正在运行的容器的名称，并将下面命令中的名称替换为系统上的容器名称。
+
+```
+docker stop trusting_beaver
+trusting_beaver
+```
+
+现在,我们的集装箱是停止,让我们删除它。当你删除一个容器,容器内的过程将停止和容器的元数据将被删除。
+
+To remove a container, simply run the `docker rm` command passing the container name. You can pass multiple container names to the command using a single command. Again, replace the container names in the following command with the container names from your system.
+
+``` 
+$ docker rm trusting_beaver modest_khayyam lucid_greider
+trusting_beaver
+modest_khayyam
+lucid_greider
+```
+
+Run the `docker ps --all` command again to see that all containers are removed.
+
+Now, let’s address the random naming issue. The standard practice is to name your containers for the simple reason that it is easier to identify what is running in the container and what application or service it is associated with.
+现在，让我们来解决随机命名的问题，标准实践是为容器命名，原因很简单，因为可以更容易地确定容器中运行的是什么以及它与哪个应用程序或服务相关联。
+
+To name a container, we just need to pass the `--name` flag to the `docker run` command.
+要命名一个容器，我们只需要将 --name 标记传递给 docker run 命令。
+
+```
+docker run --rm -d -p 8080:8080 --name springboot-server java-docker
+2e907c68d1c98be37d2b2c2ac6b16f353c85b3757e549254de68746a94a8a8d3
+docker ps
+CONTAINER ID   IMAGE         COMMAND                  CREATED         STATUS         PORTS                    NAMES
+2e907c68d1c9   java-docker   "./mvnw spring-boot:…"   8 seconds ago   Up 8 seconds   0.0.0.0:8080->8080/tcp   springboot-server
+```
+
+That’s better! We can now easily identify our container based on the name.
+这就更好了，我们可以通过名字轻松的识别我们的容器。
+
+# 开发你的应用
+
+## 先决条件
+
+完成生成映像并将其作为容器[运行](https://docs.docker.com/language/java/run-containers/)中的容器化应用程序运行的步骤。
+
+## 在容器中运行一个数据库
+
+In this module, we’ll walk through setting up a local development environment for the application we built in the previous modules. We’ll use Docker to build our images and Docker Compose to make everything a whole lot easier.
+在此模块中，我们将详细介绍如何为我们在前面的模块中构建的应用程序设置本地开发环境。我们将使用多克建立我们的图像和多克组成，使一切变得容易得多。
+
+Instead of downloading MySQL, installing, configuring, and then running the MySQL database as a service, we can use the Docker Official Image for MySQL and run it in a container.
+我们不需要下载 MySQL、安装、配置，然后将 MySQL 数据库作为服务运行，而是可以使用 Docker OfficeImage for MySQL 并在容器中运行它。
+
+Before we run MySQL in a container, we’ll create a couple of volumes that Docker can manage to store our persistent data and configuration. Let’s use the managed volumes feature that Docker provides instead of using bind mounts. You can read all about [Using volumes](https://docs.docker.com/storage/volumes/) in our documentation.
+在我们运行Mysql容器之前，我们会先创建一组数据卷用于Docker管理我们的持久化数据以及配置。让我们使用使用Docker提供的卷管理特性，而不是使用绑定挂在。你可以阅读以下文章
+
+Let’s create our volumes now. We’ll create one for the data and one for configuration of MySQL.
+现在，就让我们创建我们的存储卷，我们会为Mysql创建一个卷存储数据，一个卷存储配置
+
+```
+$ docker volume create mysql_data
+$ docker volume create mysql_config
+```
+
+Now we’ll create a network that our application and database will use to talk to each other. The network is called a user-defined bridge network and gives us a nice DNS lookup service which we can use when creating our connection string.
+现在我们会创建一个网络，让应用和数据库能相互通信。这个网络被定义为用户定义的桥接网络，它提供了一个很好的DNS查找服务，我们可以在创建链接字符时使用这个服务。
+
+```
+$ docker network create mysqlne
+```
+
+Now, let’s run MySQL in a container and attach to the volumes and network we created above. Docker pulls the image from Hub and runs it locally.
+现在，让我们在容器中运行mysql，并且连接到我们上面创建的存储卷和网络，docker 会从Hub上拉取镜像，并在本地运行它。
+
+```
+$ docker run -it --rm -d -v mysql_data:/var/lib/mysql \
+-v mysql_config:/etc/mysql/conf.d \
+--network mysqlnet \
+--name mysqlserver \
+-e MYSQL_USER=petclinic -e MYSQL_PASSWORD=petclinic \
+-e MYSQL_ROOT_PASSWORD=root -e MYSQL_DATABASE=petclinic \
+-p 3306:3306 mysql:8.0
+```
+
+Okay, now that we have a running MySQL, let’s update our Dockerfile to activate the MySQL Spring profile defined in the application and switch from an in-memory H2 database to the MySQL server we just created.
+
+We only need to add the MySQL profile as an argument to the definition.`CMD`
+
+```
+CMD ["./mvnw", "spring-boot:run", "-Dspring-boot.run.profiles=mysql"]
+```
+
+Let’s build our image.
+现在让我们构建我们的镜像。
+
+```
+$ docker build --tag java-docker .
+```
+
+Now, let’s run our container. This time, we need to set the environment variable so that our application knows what connection string to use to access the database. We’ll do this using the command.`MYSQL_URL` `docker run`
+
+```
+$ docker run --rm -d \
+--name springboot-server \
+--network mysqlnet \
+-e MYSQL_URL=jdbc:mysql://mysqlserver/petclinic \
+-p 8080:8080 java-docker
+```
+
+Let’s test that our application is connected to the database and is able to list Veterinarians.
+让我们测试我们的应用是否链接到数据库并且能够列出兽医列表。
+
+```
+$ curl  --request GET \
+  --url http://localhost:8080/vets \
+  --header 'content-type: application/json'
+```
+
+You should receive the following json back from our service.
+你可以从我们服务器中收到以下JSON。
+
+```
+{"vetList":[{"id":1,"firstName":"James","lastName":"Carter","specialties":[],"nrOfSpecialties":0,"new":false},{"id":2,"firstName":"Helen","lastName":"Leary","specialties":[{"id":1,"name":"radiology","new":false}],"nrOfSpecialties":1,"new":false},{"id":3,"firstName":"Linda","lastName":"Douglas","specialties":[{"id":3,"name":"dentistry","new":false},{"id":2,"name":"surgery","new":false}],"nrOfSpecialties":2,"new":false},{"id":4,"firstName":"Rafael","lastName":"Ortega","specialties":[{"id":2,"name":"surgery","new":false}],"nrOfSpecialties":1,"new":false},{"id":5,"firstName":"Henry","lastName":"Stevens","specialties":[{"id":1,"name":"radiology","new":false}],"nrOfSpecialties":1,"new":false},{"id":6,"firstName":"Sharon","lastName":"Jenkins","specialties":[],"nrOfSpecialties":0,"new":false}]}
+```
+
+
+## 用于开发的多阶段Dockerfile
+
+
+
+## 使用 Docker Compose 在本地进行开发
+
+## 链接调试器
+
+# 运行测试
+
+## 先决条件
+
+## 介绍
+
+## 重构Dockerfile以运行测试
+
+## 用于测试的多级Dockerfile
+
+# 为应用配置CI/CD
+
+## 开始使用github操作
+
+
